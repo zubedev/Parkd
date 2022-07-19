@@ -15,6 +15,9 @@ services:
     restart: unless-stopped
     stdin_open: true  # docker run -i
     tty: true  # docker run -t
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:14-alpine
@@ -22,6 +25,11 @@ services:
     env_file: .env
     volumes:
       - parkd_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready
+      interval: 5s
+      timeout: 10s
+      retries: 10
     restart: unless-stopped
 
 volumes:
