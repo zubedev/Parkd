@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Run automated tests only if RUN_TYPE=TEST
+if [[ "${RUN_TYPE}" = "TEST" ]]; then
+  python manage.py test
+  exit $?
+fi
+
 # Migrate database
 printf "\nRunning Django database migrations\n"
 python manage.py migrate --no-input
