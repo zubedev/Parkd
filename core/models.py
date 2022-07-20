@@ -16,8 +16,15 @@ class CarBay(TimeStampedModel):
     """ A model for car bays in the car park """
     id = models.BigAutoField('Car Bay ID', primary_key=True)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self) -> str:
         return f'Car Bay {self.id}'
+
+    @property
+    def is_available(self) -> bool:
+        return self.booking_set.exists()
 
 
 class Customer(TimeStampedModel):
@@ -25,6 +32,9 @@ class Customer(TimeStampedModel):
     id = models.BigAutoField('Customer ID', primary_key=True)
     name = models.CharField('Customer Name', max_length=255)
     plate = models.CharField('Licence Plate', max_length=9, unique=True, db_index=True)
+
+    class Meta:
+        ordering = ['name', 'plate']
 
     def __str__(self) -> str:
         return f'{self.name} <{self.plate}>'
@@ -41,6 +51,7 @@ class Booking(TimeStampedModel):
         constraints = (
             models.UniqueConstraint(fields=['date', 'carbay'], name='unique_booking'),
         )
+        ordering = ['-date', '-created_at']
 
     def __str__(self) -> str:
         return f'[{self.date}] {self.carbay} - {self.customer}'
