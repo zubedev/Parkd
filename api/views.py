@@ -1,16 +1,44 @@
-from rest_framework import exceptions, generics, status
+from django.utils import timezone
+from rest_framework import exceptions, status, views
 from rest_framework.response import Response
 
 from api import serializers
 from core import models, utils
 
 
-class BookingCreateAPI(generics.CreateAPIView):
+class CarBayAvailableAPI(views.APIView):
+    """ Available car bay endpoint for given booking date """
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        params = request.query_params
+
+        # validation for `date` field
+        date = params.get('date')
+        if not date:
+            raise exceptions.ValidationError('Please provide a date in the url query params /availability/?date=YYYY-MM-DD')
+
+        # convert `date` string to datetime object
+        date = timezone.datetime.strptime(date, '%Y-%m-%d')
+
+        if not date > timezone.now().today():
+            raise exceptions.ValidationError('Given date must be in the future - e.g. tomorrow\'s date onwards')
+
+        # car bay availability queryset
+        carbays = utils.get_available_car_bays(date)
+
+        response_data = {
+            'count': carbays.count(),
+            'carbays': carbays.values_list('id', flat=True)
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class BookingCreateAPI(views.APIView):
     """ Make a booking endpoint for customer """
-    queryset = models.Booking.objects.all()
-    serializer_class = serializers.BookingSerializer
-    
-    def create(self, request, *args, **kwargs):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
         data = request.data
 
         # pop out the `customer` object and do validations
