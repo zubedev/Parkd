@@ -11,9 +11,14 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = ['name', 'plate']
 
 
-class BookingSerializer(serializers.ModelSerializer):
-    """ Booking data serializer for BookingCreateAPI """
+class MakeBookingSerializer(serializers.ModelSerializer):
+    """ Booking data serializer for MakeBookingAPI """
 
     class Meta:
         model = models.Booking
         fields = ['id', 'date', 'carbay', 'customer', 'created_at']
+
+
+class GetBookingsSerializer(MakeBookingSerializer):
+    """ Booking data serializer for GetBookingsAPI """
+    customer = CustomerSerializer()
