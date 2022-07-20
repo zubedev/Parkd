@@ -18,8 +18,10 @@ class CarBayAvailableAPI(views.APIView):
         if not date:
             raise exceptions.ValidationError({'message': 'Please provide a date in the url query params /availability/?date=YYYY-MM-DD'})
 
-        # convert `date` string to datetime object
-        date = timezone.datetime.strptime(date, '%Y-%m-%d')
+        try:  # convert `date` string to datetime object
+            date = timezone.datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            raise exceptions.ValidationError({'message': 'Invalid date format provided - Valid format date=YYYY-MM-DD'})
 
         if not date > timezone.now().today():
             raise exceptions.ValidationError({'message': 'Given date must be in the future - e.g. tomorrow\'s date onwards'})
@@ -27,10 +29,12 @@ class CarBayAvailableAPI(views.APIView):
         # car bay availability queryset
         carbays = utils.get_available_car_bays(date)
 
+        response_message = 'Successfully retrieved available car bays' if carbays.exists() else 'No car bays available'
+
         response_data = {
             'count': carbays.count(),
             'data': carbays.values_list('id', flat=True),
-            'message': f'Successfully retrieved available car bays for date={date.strftime("%Y-%m-%d")}',
+            'message': f'{response_message} for date={date.strftime("%Y-%m-%d")}',
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
@@ -40,7 +44,7 @@ class MakeBookingAPI(views.APIView):
     http_method_names = ['post']
 
     def post(self, request, *args, **kwargs):
-        data = request.data
+        data = request.data.copy()
 
         # pop out the `customer` object and do validations
         customer = data.pop('customer', {})
@@ -109,19 +113,19 @@ class GetBookingsAPI(views.APIView):
         if not date:
             raise exceptions.ValidationError({'message': 'Please provide a date in the url query params /bookings/?date=YYYY-MM-DD'})
 
-        # convert `date` string to datetime object
-        date = timezone.datetime.strptime(date, '%Y-%m-%d')
+        try:  # convert `date` string to datetime object
+            date = timezone.datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            raise exceptions.ValidationError({'message': 'Invalid date format provided - Valid format date=YYYY-MM-DD'})
 
         bookings = models.Booking.objects.filter(date=date)
         bookings_data = serializers.GetBookingsSerializer(bookings, many=True).data
 
-        response_message = f'Successfully retrieved {bookings.count()} bookings for date={date.strftime("%Y-%m-%d")}' \
-            if bookings.exists() \
-            else f'No bookings found for date={date.strftime("%Y-%m-%d")}'
+        response_message = f'Successfully retrieved {bookings.count()} bookings' if bookings.exists() else f'No bookings found'
 
         response_data = {
             'count': bookings.count(),
             'data': bookings_data,
-            'message': response_message,
+            'message': f'{response_message} for date={date.strftime("%Y-%m-%d")}',
         }
         return Response(response_data, status=status.HTTP_200_OK)
